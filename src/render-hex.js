@@ -48,6 +48,22 @@
   /** @const {string} */
   var FONT = 'font-family="Helvetica,Arial,sans-serif"';
 
+  /* Printed on every sheet. The seed and carver in the caption reproduce the
+   * maze exactly, so this is where a reader types them back in to get the
+   * solution -- a printed page is otherwise a dead end. Lowercase deliberately:
+   * GitHub Pages paths are case-sensitive, so the caps the rest of the caption
+   * is set in would 404.
+   * @const {string} */
+  var SITE = 'moechofe.github.io/printable-maze-generator';
+
+  /* TRACKING SCALES WITH THE CAPTION. SVG letter-spacing is a length in user
+   * units, not an em, so a fixed value does not shrink when the caption does:
+   * at 0.95 it is the 0.11 em this style was drawn with, but at a third of
+   * that size it is most of the line. That is what used to run a fitted caption
+   * off the edge of the sheet.
+   * @const {number} */
+  var TRACK = 0.105;
+
   /**
    * @param {number} n
    * @return {number}
@@ -194,21 +210,33 @@
     var SEP = ' &#160;&#183;&#160; ';
     var carver = String(o.carver || 'dfs').toUpperCase();
     var caption = 'SEED ' + esc(o.seed) + SEP + g.cols + '&#215;' + g.rows +
-      ' HEXES' + SEP + esc(o.label) + SEP + 'HEXAGONAL' + SEP + esc(carver);
+      ' HEXES' + SEP + esc(o.label) + SEP + 'HEXAGONAL' + SEP + esc(carver) +
+      SEP + SITE;
     var plain = 'SEED ' + o.seed + '  .  ' + g.cols + 'x' + g.rows + ' HEXES  .  ' +
-      o.label + '  .  HEXAGONAL  .  ' + carver;
-    /* 0.68 em per glyph, measured off a render rather than guessed: Helvetica
-     * caps average a little under 0.6 em and the letter-spacing adds the rest.
-     * The earlier 0.62 ran the caption about a tenth wider than budgeted. */
+      o.label + '  .  HEXAGONAL  .  ' + carver + '  .  ' + SITE;
     /* Budget the honeycomb's own width rather than the whole viewBox, so a long
      * caption stops at the edges of the maze, not the edges of the paper. */
-    var capFont = Math.max(0.34, Math.min(0.95,
-      (g.maxX - g.minX) / (plain.length * 0.68)));
+    /* NO FLOOR UNDER THE SIZE. A floor does not keep a long caption readable,
+     * it just decides which end of it gets clipped off by the edge of the
+     * viewBox -- and the one thing on the line that must survive is the URL,
+     * since that is what makes the printed sheet recoverable. Fitting it
+     * against the drawing's own width instead bounds the caption by something
+     * strictly narrower than the box, so it always lands inside the sheet.
+     * tester/verify.js measures that off the emitted text rather than trusting
+     * this arithmetic.
+     *
+     * 0.78 EM PER GLYPH, TRACKING INCLUDED. Helvetica caps advance about
+     * 0.66 em and the tracking above adds the rest; lowercase runs well under
+     * that, so this is the all-caps worst case a seed can be typed in. The
+     * older 0.68 was measured off a mixed-case caption and did not survive one
+     * with the site on the end of it. */
+    var capFont = Math.min(0.95, (g.maxX - g.minX) / (plain.length * 0.78));
 
     var footer =
       '<text x="' + fmt((g.minX + g.maxX) / 2) + '" y="' + fmt(g.maxY + 4.1) + '" ' +
       'text-anchor="middle" font-size="' + fmt(capFont) + '" ' + FONT +
-      ' letter-spacing="0.1" fill="#444444">' + caption + '</text>';
+      ' letter-spacing="' + fmt(TRACK * capFont) + '" fill="#444444">' +
+      caption + '</text>';
 
     return '<svg xmlns="http://www.w3.org/2000/svg" class="maze-svg" role="img" ' +
       'aria-label="Hexagonal maze, seed ' + esc(o.seed) + '" ' +

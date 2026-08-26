@@ -6,11 +6,11 @@
 # warning level, and NOTHING is allowed through. Closure exits 0 on warnings, so
 # the count is asserted here rather than trusted to the exit code.
 #
-# Run: bash build/check.sh
+# Run: bash builder/check.sh
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-. "$ROOT/build/sources.sh"
+. "$ROOT/builder/sources.sh"
 
 out="$("$CLOSURE" --checks_only "${COMMON_FLAGS[@]}" "${EXTERNS[@]}" \
   "${SOURCES[@]}" 2>&1)"

@@ -1041,6 +1041,40 @@ function viewBox(svg) {
   return { w: parseFloat(m[3]), h: parseFloat(m[4]) };
 }
 
+/* THE SHEET HAS TO SAY WHERE IT CAME FROM. A printed maze carries its seed and
+ * its carver, which is enough to redraw it exactly -- but only if the reader
+ * knows where to type them, so every style prints the site in its caption too.
+ * The renderers each hold their own copy of the string, as they do with INK and
+ * the font, so this checks all six actually emit it. */
+var SITE = 'moechofe.github.io/printable-maze-generator';
+
+/* The caption is the one piece of the drawing sized from the seed text, so it
+ * is the one piece that can overrun the sheet: past the edge of the viewBox a
+ * browser simply clips it, and what goes first is whichever end of the line the
+ * URL is on. So measure it off the emitted text at the emitted size, rather
+ * than trusting the arithmetic the renderer fitted with.
+ *
+ * Width is glyphs * (advance + tracking) * size, and the tracking is read back
+ * out of the markup rather than assumed. That is the part worth checking: SVG
+ * letter-spacing is a LENGTH IN USER UNITS, not an em, so a renderer that
+ * leaves it fixed while shrinking the font spends more and more of the line on
+ * the gaps between letters -- a theta caption came out half again as wide as
+ * its own estimate that way. 0.66 em is Helvetica's caps advance, which is the
+ * worst case a seed can be typed in. */
+function captionWidth(svg) {
+  var texts = svg.match(/<text[^>]*>[^<]*<\/text>/g) || [];
+  var last = texts[texts.length - 1];
+  if (!last) return null;
+  var size = /font-size="([0-9.]+)"/.exec(last);
+  var track = /letter-spacing="([0-9.]+)"/.exec(last);
+  var body = />([^<]*)</.exec(last)[1];
+  if (!size || body.indexOf(SITE) === -1) return null;
+  // Entities are one glyph each on the page, whatever their length in source.
+  var glyphs = body.replace(/&#?[a-z0-9]+;/g, '.').length;
+  return glyphs * (0.66 * parseFloat(size[1]) +
+    (track ? parseFloat(track[1]) : 0));
+}
+
 var SEEDS = ['A', 'RENDER', 'A-VERY-LONG-SEED-INDEED-TYPED-BY-HAND'];
 
 function renderFor(style, seed, preset) {
@@ -1102,7 +1136,8 @@ function renderFor(style, seed, preset) {
     var preset = PRESETS[key], worst = null, best = null, box = null;
 
     SEEDS.forEach(function (seed) {
-      var vb = viewBox(renderFor(style, seed, preset));
+      var svg = renderFor(style, seed, preset);
+      var vb = viewBox(svg);
       check(vb !== null, style + ' ' + key + ': no viewBox in the rendered SVG');
       if (!vb) return;
       var f = PAPER.fill(vb.w, vb.h);
@@ -1115,6 +1150,16 @@ function renderFor(style, seed, preset) {
         PAPER.printedWidthMm(vb.w, vb.h).toFixed(0) + 'mm wide');
       check(f >= PAPER.MIN_FILL, style + ' ' + key + ' seed ' + seed +
         ': leaves the sheet ' + Math.round((1 - f) * 100) + '% empty');
+
+      var capW = captionWidth(svg);
+      check(capW !== null, style + ' ' + key + ' seed ' + seed +
+        ': the caption does not print ' + SITE + ', so the sheet cannot be ' +
+        'traced back to the app that drew it');
+      if (capW !== null) {
+        check(capW <= vb.w, style + ' ' + key + ' seed ' + seed +
+          ': the caption is ' + capW.toFixed(1) + ' units wide in a ' +
+          vb.w.toFixed(1) + '-unit box, so the browser clips its ends off');
+      }
     });
 
     /* Seed text must not move the box at all. It is the caption that has to

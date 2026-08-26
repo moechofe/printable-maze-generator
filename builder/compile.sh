@@ -7,11 +7,11 @@
 # lands in dist/ is an extra artifact for anyone who wants one file. dist/
 # index.html is GENERATED from the real one so the markup has a single source.
 #
-# Run: bash build/compile.sh
+# Run: bash builder/compile.sh
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-. "$ROOT/build/sources.sh"
+. "$ROOT/builder/sources.sh"
 
 DIST="$ROOT/dist"
 mkdir -p "$DIST"

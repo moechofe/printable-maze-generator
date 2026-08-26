@@ -1,7 +1,7 @@
 /* Run the MINIFIED bundle and make it draw all six styles.
  *
- * WHY THIS EXISTS. build/check.sh proves the annotations are consistent, and
- * test/verify.js proves the SOURCE generates correct mazes -- but neither runs
+ * WHY THIS EXISTS. builder/check.sh proves the annotations are consistent, and
+ * tester/verify.js proves the SOURCE generates correct mazes -- but neither runs
  * a line of dist/script.js, and ADVANCED compilation is where a maze generator
  * breaks silently: rename a property on one side of a computed lookup and the
  * app throws on the first draw with the type checker perfectly happy. So this
@@ -13,7 +13,7 @@
  * BROWSER branch and builds the MM namespace -- which is the half of that tail
  * a bundle actually uses.
  *
- * Run: node build/smoke.js
+ * Run: node builder/smoke.js
  */
 'use strict';
 
@@ -25,7 +25,7 @@ var root = path.join(__dirname, '..');
 var bundle = path.join(root, 'dist', 'script.js');
 
 if (!fs.existsSync(bundle)) {
-  console.error('smoke: no dist/script.js -- run build/compile.sh first');
+  console.error('smoke: no dist/script.js -- run builder/compile.sh first');
   process.exit(1);
 }
 

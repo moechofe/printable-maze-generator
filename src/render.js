@@ -53,6 +53,22 @@
    */
   function span(i) { return (i % 2 === 0) ? Uw : Uc; }
 
+  /* Printed on every sheet. The seed and carver in the caption reproduce the
+   * maze exactly, so this is where a reader types them back in to get the
+   * solution -- a printed page is otherwise a dead end. Lowercase deliberately:
+   * GitHub Pages paths are case-sensitive, so the caps the rest of the caption
+   * is set in would 404.
+   * @const {string} */
+  var SITE = 'moechofe.github.io/printable-maze-generator';
+
+  /* TRACKING SCALES WITH THE CAPTION. SVG letter-spacing is a length in user
+   * units, not an em, so a fixed value does not shrink when the caption does:
+   * at 0.62 it is the 0.13 em this style was drawn with, but at a third of
+   * that size it is most of the line. That is what used to run a fitted caption
+   * off the edge of the sheet.
+   * @const {number} */
+  var TRACK = 0.129;
+
   /**
    * @param {number} n
    * @return {number}
@@ -269,12 +285,38 @@
     // Numeric character refs (middle dot, multiply sign, degree) keep this
     // source file pure ASCII while the rendered caption still reads properly.
     var SEP = ' &#160;&#183;&#160; ';
+    var light = Math.round(o.light);
+    var carver = String(o.carver || 'dfs').toUpperCase();
     var caption = 'SEED ' + esc(o.seed) + SEP + o.maze.width + '&#215;' + o.maze.height +
-      SEP + esc(o.label) + SEP + 'LIGHT ' + Math.round(o.light) + '&#176;' +
-      SEP + esc(String(o.carver || 'dfs').toUpperCase());
+      SEP + esc(o.label) + SEP + 'LIGHT ' + light + '&#176;' +
+      SEP + esc(carver) + SEP + SITE;
+    /* Fitted to the drawing, never the reverse -- the margins above are already
+     * settled, and widening them for a long caption would make the printed
+     * scale depend on the seed text. 0.68 em per glyph, as in the other five.
+     * The site is what made the fitting necessary here: at a fixed 0.62 the
+     * caption ran off an Easy sheet as soon as the URL was added to it. */
+    var plain = 'SEED ' + o.seed + '  .  ' + o.maze.width + 'x' + o.maze.height +
+      '  .  ' + o.label + '  .  LIGHT ' + light + 'd  .  ' + carver + '  .  ' + SITE;
+    /* NO FLOOR UNDER THE SIZE. A floor does not keep a long caption readable,
+     * it just decides which end of it gets clipped off by the edge of the
+     * viewBox -- and the one thing on the line that must survive is the URL,
+     * since that is what makes the printed sheet recoverable. Fitting it
+     * against the drawing's own width instead bounds the caption by something
+     * strictly narrower than the box, so it always lands inside the sheet.
+     * tester/verify.js measures that off the emitted text rather than trusting
+     * this arithmetic.
+     *
+     * 0.78 EM PER GLYPH, TRACKING INCLUDED. Helvetica caps advance about
+     * 0.66 em and the tracking above adds the rest; lowercase runs well under
+     * that, so this is the all-caps worst case a seed can be typed in. The
+     * older 0.68 was measured off a mixed-case caption and did not survive one
+     * with the site on the end of it. */
+    var capFont = Math.min(0.62, totalW / (plain.length * 0.78));
     var footer =
       '<text x="' + fmt(totalW / 2) + '" y="' + fmt(totalH + 3.0) + '" text-anchor="middle" ' +
-      'font-size="0.62" ' + LABEL_FONT + ' letter-spacing="0.08" fill="#444444">' + caption + '</text>';
+      'font-size="' + fmt(capFont) + '" ' + LABEL_FONT +
+      ' letter-spacing="' + fmt(TRACK * capFont) + '" fill="#444444">' +
+      caption + '</text>';
 
     return '<svg xmlns="http://www.w3.org/2000/svg" class="maze-svg" role="img" ' +
       'aria-label="Maze, seed ' + esc(o.seed) + '" ' +

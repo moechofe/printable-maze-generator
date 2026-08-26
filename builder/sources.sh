@@ -28,8 +28,8 @@ SOURCES=(
 )
 
 EXTERNS=(
-  --externs "$ROOT/build/externs/node.js"
-  --externs "$ROOT/build/externs/mm-types.js"
+  --externs "$ROOT/builder/externs/node.js"
+  --externs "$ROOT/builder/externs/mm-types.js"
 )
 
 # ES2020 in, so globalThis and the typed-array methods are known; ES5 out, so a
