@@ -3,3 +3,5 @@ My son kept asking me to print mazes so he could solve them. I was sick of tryin
 # Printable Maze Generator
 
 Made by Claude Opus 5, guided by human.
+
+https://moechofe.github.io/printable-maze-generator/
