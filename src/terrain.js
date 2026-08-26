@@ -60,6 +60,11 @@
    *
    * v starts at U rather than 0 so x and y stay non-negative across the full
    * width; starting at 0 would taper the top rows back into a point. */
+  /**
+   * @param {number} halfWidth
+   * @param {number} depth
+   * @return {!MMFrame}
+   */
   function frame(halfWidth, depth) {
     // V even so the bottom-right corner column lands on the lattice.
     var U = halfWidth, V = 2 * Math.round(depth / 2);
@@ -80,6 +85,12 @@
    * of columns, then pick a new one. The runs turn the boundary into long
    * straight cliff edges instead of noise, and holding at 0 for a while gives
    * the flat plateau tops. */
+  /**
+   * @param {number} width
+   * @param {!MMRng} rng
+   * @param {number} start
+   * @return {!Int32Array} a 1-Lipschitz boundary, one v per screen column
+   */
   function boundary(width, rng, start) {
     var out = new Int32Array(width);
     var cur = start, dir = 0, run = 0;
@@ -111,6 +122,13 @@
    * Everything starts at 1 -- a terrace with no rise is not a terrace -- and
    * the remainder is handed out one unit at a time to terraces still under
    * maxRise, which is what stops the whole climb collecting in one cliff. */
+  /**
+   * @param {number} terraces
+   * @param {number} totalRise
+   * @param {number} maxRise
+   * @param {!MMRng} rng
+   * @return {!Array<number>} one rise per terrace, summing to totalRise
+   */
   function riseSplit(terraces, totalRise, maxRise, rng) {
     var out = [], i;
     for (i = 0; i < terraces; i++) out.push(1);
@@ -129,6 +147,10 @@
     return out;
   }
 
+  /**
+   * @param {!MMTerrainOpts} opts
+   * @return {!Int32Array} the heightmap, indexed y * n + x
+   */
   function build(opts) {
     var spec = opts.frame, rng = opts.rng;
     var U = spec.halfWidth, V = spec.depth, v0 = spec.v0, n = spec.n;
@@ -141,7 +163,11 @@
      * the format. */
     var rises = riseSplit(terraces, opts.totalRise || terraces * maxRise, maxRise, rng);
 
-    var prev = null, regions = [], i;
+    /** @type {?Int32Array} */
+    var prev = null;
+    /** @type {!Array<!MMTerrace>} */
+    var regions = [];
+    var i;
     for (var t = 1; t <= terraces; t++) {
       // Spread the boundaries down the visible window so terraces appear all
       // over the frame rather than bunching at one end.
@@ -173,8 +199,19 @@
   }
 
   // Returns the first cell where height rises toward the camera, or null.
+  /**
+   * @param {!Int32Array} H
+   * @param {number} n
+   * @param {?Uint8Array=} mask
+   * @return {?MMTerrainFault}
+   */
   function findRise(H, n, mask) {
-    function inside(x, y) { return !mask || mask[y * n + x]; }
+    /**
+     * @param {number} x
+     * @param {number} y
+     * @return {boolean}
+     */
+    function inside(x, y) { return !mask || !!mask[y * n + x]; }
     for (var y = 0; y < n; y++) {
       for (var x = 0; x < n; x++) {
         if (!inside(x, y)) continue;
@@ -191,8 +228,19 @@
   }
 
   // Returns the first cell whose top face would be hidden, or null.
+  /**
+   * @param {!Int32Array} H
+   * @param {number} n
+   * @param {?Uint8Array=} mask
+   * @return {?MMTerrainFault}
+   */
   function findOcclusion(H, n, mask) {
-    function inside(x, y) { return !mask || mask[y * n + x]; }
+    /**
+     * @param {number} x
+     * @param {number} y
+     * @return {boolean}
+     */
+    function inside(x, y) { return !mask || !!mask[y * n + x]; }
     for (var y = 0; y + 1 < n; y++) {
       for (var x = 0; x + 1 < n; x++) {
         if (!inside(x, y) || !inside(x + 1, y + 1)) continue;
@@ -204,10 +252,18 @@
     return null;
   }
 
+  /**
+   * @param {!Int32Array} H
+   * @return {string}
+   */
   function serialize(H) { return Array.prototype.join.call(H, ''); }
 
   // The highest point of the landscape -- and so, since the far corner is the
   // top of the picture, the drawing's height above the bottom row.
+  /**
+   * @param {!Int32Array} H
+   * @return {number}
+   */
   function maxHeight(H) {
     var m = 0;
     for (var i = 0; i < H.length; i++) if (H[i] > m) m = H[i];

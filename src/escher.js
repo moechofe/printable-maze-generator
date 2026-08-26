@@ -20,8 +20,15 @@
 
   // Extrusion points up-left by default: -135 degrees in screen space, where
   // +y runs down the page.
+  /** @const {number} */
   var BASE_ANGLE = -Math.PI * 0.75;
 
+  /**
+   * @param {!MMSolidGrid} grid
+   * @param {!MMRng} rng
+   * @param {?MMRegionOpts=} opts
+   * @return {!MMRegions} a patch per unit, and how each patch reads
+   */
   function buildRegions(grid, rng, opts) {
     opts = opts || {};
     var gw = grid.gw, gh = grid.gh, n = gw * gh;
@@ -29,7 +36,11 @@
     var count = Math.max(4, Math.round(n / targetSize));
 
     var region = new Int32Array(n).fill(-1);
-    var seeds = [], taken = {}, i;
+    /** @type {!Array<number>} */
+    var seeds = [];
+    /** @type {!Object<number, number>} */
+    var taken = {};
+    var i;
 
     for (i = 0; i < count; i++) {
       var idx = rng.int(n), guard = 0;
@@ -43,6 +54,7 @@
     // Multi-source BFS => Voronoi-ish patches with organic borders. Consumes
     // no randomness itself, so it stays deterministic given the seed points.
     var queue = seeds.slice(), head = 0;
+    /** @const {!Array<!Array<number>>} */
     var STEPS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
     while (head < queue.length) {
       var cur = queue[head++];
@@ -57,6 +69,7 @@
       }
     }
 
+    /** @type {!Array<!MMRegionTrait>} */
     var traits = [];
     for (var s = 0; s < seeds.length; s++) {
       // `skew` tilts this patch's extrusion away from the shared diagonal, so
@@ -82,10 +95,19 @@
     return { region: region, traits: traits, count: seeds.length };
   }
 
+  /**
+   * @param {!MMRegions} regions
+   * @param {number} idx
+   * @return {!MMRegionTrait}
+   */
   function traitAt(regions, idx) {
     return regions.traits[regions.region[idx]];
   }
 
+  /**
+   * @param {!MMRegions} regions
+   * @return {string}
+   */
   function signature(regions) {
     return regions.count + ':' + Array.prototype.join.call(regions.region, ',');
   }

@@ -30,8 +30,11 @@
 (function (global) {
   'use strict';
 
+  /** @const {number} */
   var SQRT3 = Math.sqrt(3);
+  /** @const {number} */
   var UX = SQRT3 / 2;      // lattice step across
+  /** @const {number} */
   var UY = 0.5;            // lattice step down
 
   /* Vertex k of a hex sits at angle 60k - 30 degrees, so k = 0 is east-south-
@@ -44,12 +47,15 @@
    *
    * The opposite of edge k is edge (k+3)%6, which is how one wall stays one
    * wall seen from either cell. */
+  /** @const {!Array<number>} */
   var VX = [1, 1, 0, -1, -1, 0];    // vertex offsets, in lattice units
+  /** @const {!Array<number>} */
   var VY = [-1, 1, 2, 1, -1, -2];
 
   /* Neighbour by edge index. The column step depends on row parity, because odd
    * rows are the shifted ones; the row step does not. dc is indexed by
    * (row & 1). */
+  /** @const {!Array<!MMHexStep>} */
   var STEP = [
     { name: 'E',  dc: [ 1,  1], dr:  0 },
     { name: 'SE', dc: [ 0,  1], dr:  1 },
@@ -59,9 +65,17 @@
     { name: 'NE', dc: [ 0,  1], dr: -1 }
   ];
 
+  /** @const {number} */
   var ENTRY_EDGE = 4;   // NW face of the top-left hex
+  /** @const {number} */
   var EXIT_EDGE = 1;    // SE face of the bottom-right hex
 
+  /**
+   * @param {number} col
+   * @param {number} row
+   * @param {number} k vertex index, 0 to 5
+   * @return {!Array<number>} integer lattice coordinates
+   */
   function vertexLattice(col, row, k) {
     return [
       2 * col + (row & 1) + VX[k],
@@ -69,8 +83,17 @@
     ];
   }
 
+  /**
+   * @param {!Array<number>} lat
+   * @return {!MMPoint}
+   */
   function toScreen(lat) { return [lat[0] * UX, lat[1] * UY]; }
 
+  /**
+   * @param {!Array<number>} a
+   * @param {!Array<number>} b
+   * @return {string} byte-identical from either cell, integers all the way
+   */
   function edgeKey(a, b) {
     var ka = a[0] + ',' + a[1], kb = b[0] + ',' + b[1];
     return ka < kb ? ka + '|' + kb : kb + '|' + ka;
@@ -80,20 +103,36 @@
    * and every edge in the drawing together with how many cells hold it.
    * Consumes no randomness -- the same cols/rows always produce the same graph,
    * so the maze is entirely the carver's doing. */
+  /**
+   * @param {number} cols
+   * @param {number} rows
+   * @return {!MMHexGrid}
+   */
   function grid(cols, rows) {
-    var cells = [], c, r, k, i;
+    /** @type {!Array<!MMHexCell>} */
+    var cells = [];
+    var c, r, k, i;
 
     for (r = 0; r < rows; r++) {
       for (c = 0; c < cols; c++) {
-        cells.push({ col: c, row: r, cx: (2 * c + (r & 1)) * UX, cy: 3 * r * UY });
+        // Cast: `poly` is filled in below, once the geometry is baked out.
+        cells.push(/** @type {!MMHexCell} */ ({
+          col: c, row: r, cx: (2 * c + (r & 1)) * UX, cy: 3 * r * UY
+        }));
       }
     }
 
-    var edgeEnds = Object.create(null);
-    var edgeVerts = Object.create(null);
-    var edgeMid = Object.create(null);
-    var edgeCells = Object.create(null);
+    var edgeEnds =
+      /** @type {!Object<string, !Array<!MMPoint>>} */ (Object.create(null));
+    var edgeVerts =
+      /** @type {!Object<string, !Array<string>>} */ (Object.create(null));
+    var edgeMid =
+      /** @type {!Object<string, !MMPoint>} */ (Object.create(null));
+    var edgeCells =
+      /** @type {!Object<string, number>} */ (Object.create(null));
+    /** @type {!Array<string>} */
     var edgeOrder = [];
+    /** @type {!Array<!Array<string>>} */
     var cellEdges = [];           // cellEdges[i][k] is the key of that cell's edge k
 
     /* Geometry is baked out here rather than exposed as helper functions, so
@@ -190,10 +229,23 @@
    * wall of thickness t leaves 1 - t of corridor exactly as on the square grid.
    * A hex is sqrt(3) edges across, so a wall that looks the same weight here
    * covers less of a cell than it does there. */
+  /**
+   * @param {!MMHexGrid} g
+   * @param {!MMOpen} open
+   * @return {!MMSheet} the standing walls, in the vocabulary of src/lattice.js
+   */
   function wallLattice(g, open) {
-    var seen = Object.create(null);
-    var verts = [], entries = [];
+    var seen = /** @type {!Object<string, number>} */ (Object.create(null));
+    /** @type {!Array<!MMLatticeVert>} */
+    var verts = [];
+    /** @type {!Array<!MMLatticeEntry>} */
+    var entries = [];
 
+    /**
+     * @param {string} key
+     * @param {!MMPoint} xy
+     * @return {undefined}
+     */
     function note(key, xy) {
       if (seen[key]) return;
       seen[key] = 1;
@@ -247,6 +299,11 @@
     };
   }
 
+  /**
+   * @param {!MMHexGrid} g
+   * @param {!Array<number>} path
+   * @return {!Array<!MMPoint>} the route as hex centres
+   */
   function pathXY(g, path) {
     var out = [];
     for (var i = 0; i < path.length; i++) {
@@ -255,6 +312,10 @@
     return out;
   }
 
+  /**
+   * @param {!MMHexGrid} g
+   * @return {string}
+   */
   function signature(g) {
     return g.cols + 'x' + g.rows + ':' + g.edgeOrder.length + ':' +
       g.adj.map(function (list) {

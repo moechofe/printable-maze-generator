@@ -49,31 +49,47 @@
 (function (global) {
   'use strict';
 
+  /** @const {string} */
   var INK = '#111111';
 
   /* Defaults for a square grid. Measured off the reference image: heavy enough
    * to read as a solid shape rather than a line, and still leaving 0.62 of
    * clear corridor. A grid can suggest its own on the sheet -- the honeycomb
    * does, and src/hex.js explains why it has to. */
+  /** @const {number} */
   var WALL = 0.38;
 
   /* Corner radius. The cut-back along each leg is r*tan(theta/2), which for a
    * right angle is r and for a honeycomb's 60-degree turn only 0.577r, so a
    * radius safe on the square grid is more than safe on the hex one.
    * src/lattice.js shrinks it further if a leg is too short. */
+  /** @const {number} */
   var FILLET = 0.42;
 
   // Margins in lattice pitches: room for the labels and the seed caption.
   var mL = 1.0, mR = 1.0, mT = 2.6, mB = 3.8;
 
+  /** @const {string} */
   var FONT = 'font-family="Helvetica,Arial,sans-serif"';
 
+  /**
+   * @param {number} n
+   * @return {number}
+   */
   function fmt(n) { return Math.round(n * 1000) / 1000; }
 
+  /**
+   * @param {?} s
+   * @return {string} safe to drop into markup
+   */
   function esc(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
+  /**
+   * @param {!Array<!MMPoint>} pts
+   * @return {string}
+   */
   function lineD(pts) {
     var d = 'M';
     for (var i = 0; i < pts.length; i++) {
@@ -85,6 +101,12 @@
 
   // The nominal viewBox, without rendering anything. src/presets.js is solved
   // against this, so it has to be the one place the box is defined.
+  /**
+   * @param {!MMBox} box
+   * @param {number=} span the grid's own text scale, if it needs one
+   * @param {number=} wall
+   * @return {!MMViewBox}
+   */
   function viewBox(box, span, wall) {
     wall = (wall == null) ? WALL : wall;
     span = span || 1;
@@ -94,9 +116,14 @@
     };
   }
 
+  /**
+   * @param {!MMRoundOpts} o
+   * @return {string}
+   */
   function toSvg(o) {
-    var LATTICE = (typeof module !== 'undefined' && module.exports)
-      ? require('./lattice.js') : global.MM.lattice;
+    var LATTICE = /** @type {!MMLatticeApi} */ (
+      (typeof module !== 'undefined' && module.exports)
+        ? require('./lattice.js') : global.MM.lattice);
 
     var sheet = o.sheet, box = sheet.box;
     // Caller wins, then the grid's own suggestion, then the square default.

@@ -26,6 +26,7 @@
 
   // Index matches the bit order above; `opp` is the same wall seen from the
   // neighbouring cell, which must be cleared in lock-step.
+  /** @const {!Array<!MMDir>} */
   var DIRS = [
     { bit: N, dx: 0, dy: -1, opp: S },
     { bit: E, dx: 1, dy: 0, opp: W },
@@ -43,8 +44,18 @@
    *
    * Order is load-bearing: the carvers pick from these lists, so reordering
    * them changes every maze. */
+  /**
+   * @param {number} a
+   * @param {number} b
+   * @return {string} the same key from either side of the wall
+   */
   function edgeKeyFor(a, b) { return a < b ? a + '|' + b : b + '|' + a; }
 
+  /**
+   * @param {number} w
+   * @param {number} h
+   * @return {!MMGridGraph}
+   */
   function grid(w, h) {
     var n = w * h, adj = [], i;
     for (i = 0; i < n; i++) adj.push([]);
@@ -72,6 +83,12 @@
    * Every wall is cleared from BOTH sides in lock-step -- a cell whose east
    * wall is down facing a neighbour that still believes its west wall is up
    * would draw one wall and solve through it. */
+  /**
+   * @param {number} w
+   * @param {number} h
+   * @param {!MMOpen} open
+   * @return {!Uint8Array} four wall bits per cell
+   */
   function wallsFromOpen(w, h, open) {
     var walls = new Uint8Array(w * h);
     walls.fill(N | E | S | W);
@@ -96,15 +113,23 @@
    * loaded first so MM.graph is already there, but resolving lazily means a
    * reordered index.html fails loudly at generation rather than silently
    * capturing undefined at parse time. */
+  /** @type {?MMGraphApi} */
   var graphApi = null;
+
+  /** @return {!MMGraphApi} */
   function GRAPH() {
     if (!graphApi) {
-      graphApi = (typeof module !== 'undefined' && module.exports)
-        ? require('./graph.js') : global.MM.graph;
+      graphApi = /** @type {!MMGraphApi} */ (
+        (typeof module !== 'undefined' && module.exports)
+          ? require('./graph.js') : global.MM.graph);
     }
     return graphApi;
   }
 
+  /**
+   * @param {!MMGenerateOpts} opts
+   * @return {!MMFlatMaze}
+   */
   function generate(opts) {
     var w = opts.width, h = opts.height, rng = opts.rng;
     var g = grid(w, h);
@@ -124,6 +149,10 @@
   }
 
   // Breadth-first search, so the returned route is also the shortest one.
+  /**
+   * @param {!MMFlatMaze} maze
+   * @return {?Array<number>}
+   */
   function solve(maze) {
     var w = maze.width, h = maze.height, walls = maze.walls;
     var prev = new Int32Array(w * h).fill(-1);
@@ -156,6 +185,10 @@
 
   // How many cells the start can reach; used by the test to prove braiding
   // never strands a region.
+  /**
+   * @param {!MMFlatMaze} maze
+   * @return {number}
+   */
   function reachableCount(maze) {
     var w = maze.width, h = maze.height, walls = maze.walls;
     var seen = new Uint8Array(w * h);
@@ -181,6 +214,10 @@
   /* Expand the cell grid into a (2w+1) x (2h+1) grid of solid/open units, so
    * walls become drawable squares rather than zero-width lines. Even indices
    * are wall or pillar units, odd indices are cell units. */
+  /**
+   * @param {!MMFlatMaze} maze
+   * @return {!MMSolidGrid}
+   */
   function toSolidGrid(maze) {
     var w = maze.width, h = maze.height;
     var gw = 2 * w + 1, gh = 2 * h + 1;
@@ -205,6 +242,10 @@
     return { gw: gw, gh: gh, solid: solid };
   }
 
+  /**
+   * @param {!MMFlatMaze} maze
+   * @return {string}
+   */
   function serialize(maze) {
     return maze.width + 'x' + maze.height + ':' +
       Array.prototype.join.call(maze.walls, '');

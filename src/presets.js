@@ -59,6 +59,7 @@
 (function (global) {
   'use strict';
 
+  /** @const {!MMPresetTable} */
   var PRESETS = {
     easy: {
       label: 'Easy',

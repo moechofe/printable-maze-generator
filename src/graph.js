@@ -45,14 +45,26 @@
 (function (global) {
   'use strict';
 
+  /**
+   * @param {!MMAdj} adj
+   * @param {!MMOpen} open
+   * @param {number} node
+   * @return {number} how many of this node's walls are down
+   */
   function openDegree(adj, open, node) {
     var list = adj[node], c = 0;
     for (var i = 0; i < list.length; i++) if (open[list[i].key]) c++;
     return c;
   }
 
+  /**
+   * @param {!MMAdj} adj
+   * @param {!MMRng} rng
+   * @param {number} startNode
+   * @return {!MMCarveResult}
+   */
   function carve(adj, rng, startNode) {
-    var open = Object.create(null);
+    var open = /** @type {!MMOpen} */ (Object.create(null));
     var visited = new Uint8Array(adj.length);
     var stack = [startNode];
     var reached = 1;
@@ -84,6 +96,10 @@
    * once. Walking nodes in index order and lists in their stored order makes
    * the result depend on nothing but the graph -- which matters, because the
    * shuffle below is what the seed then acts on. */
+  /**
+   * @param {!MMAdj} adj
+   * @return {!Array<!MMGraphEdge>}
+   */
   function edgeList(adj) {
     var out = [];
     for (var i = 0; i < adj.length; i++) {
@@ -96,10 +112,19 @@
   }
 
   // Union-find with path compression and union by size.
+  /**
+   * @param {number} n
+   * @return {{find: function(number): number,
+   *           union: function(number, number): boolean}}
+   */
   function makeSets(n) {
     var parent = new Int32Array(n), size = new Int32Array(n).fill(1);
     for (var i = 0; i < n; i++) parent[i] = i;
 
+    /**
+     * @param {number} x
+     * @return {number}
+     */
     function find(x) {
       var root = x;
       while (parent[root] !== root) root = parent[root];
@@ -126,8 +151,14 @@
    *
    * `reached` is computed the same way the others report it, so an unconnected
    * graph is caught identically whichever carver ran. */
+  /**
+   * @param {!MMAdj} adj
+   * @param {!MMRng} rng
+   * @param {number} startNode
+   * @return {!MMCarveResult}
+   */
   function carveKruskal(adj, rng, startNode) {
-    var open = Object.create(null);
+    var open = /** @type {!MMOpen} */ (Object.create(null));
     var edges = edgeList(adj);
     rng.shuffle(edges);
 
@@ -159,10 +190,17 @@
    * Guard: a disconnected graph would leave a walk unable to reach the tree and
    * spin forever, so bail out after a generous step budget and let `reached`
    * report the shortfall to the caller, which every pipeline already checks. */
+  /**
+   * @param {!MMAdj} adj
+   * @param {!MMRng} rng
+   * @param {number} startNode
+   * @return {!MMCarveResult}
+   */
   function carveWilson(adj, rng, startNode) {
     var n = adj.length;
-    var open = Object.create(null);
+    var open = /** @type {!MMOpen} */ (Object.create(null));
     var inTree = new Uint8Array(n);
+    /** @type {!Array<!MMEdge>} */
     var step = new Array(n);
     var reached = 1;
 
@@ -222,9 +260,17 @@
    * NOTE for anyone comparing textures: bias 1 draws the same DISTRIBUTION as
    * `dfs` but not the same maze from the same seed. The coin flip is an extra
    * draw from the stream, so the two run out of step immediately. */
+  /**
+   * @param {!MMAdj} adj
+   * @param {!MMRng} rng
+   * @param {number} startNode
+   * @param {?MMCarveOpts=} opts carries the growth bias, and only this carver
+   *     reads it -- which is why every carver accepts it and most ignore it
+   * @return {!MMCarveResult}
+   */
   function carveGrowingTree(adj, rng, startNode, opts) {
     var bias = (opts && typeof opts.bias === 'number') ? opts.bias : 0.5;
-    var open = Object.create(null);
+    var open = /** @type {!MMOpen} */ (Object.create(null));
     var visited = new Uint8Array(adj.length);
     var active = [startNode];
     var reached = 1;
@@ -257,6 +303,7 @@
     return { open: open, visited: visited, reached: reached };
   }
 
+  /** @const {!MMCarverFns} */
   var CARVERS = {
     dfs: carve,
     kruskal: carveKruskal,
@@ -267,10 +314,26 @@
   // One entry point for every pipeline, so adding a carver is a one-line change
   // here rather than a hunt through four builders. Unknown names fall back to
   // DFS rather than throwing: a stale URL should still draw a maze.
+  /**
+   * @param {string} name
+   * @param {!MMAdj} adj
+   * @param {!MMRng} rng
+   * @param {number} startNode
+   * @param {?MMCarveOpts=} opts
+   * @return {!MMCarveResult}
+   */
   function carveBy(name, adj, rng, startNode, opts) {
     return (CARVERS[name] || carve)(adj, rng, startNode, opts);
   }
 
+  /**
+   * Open a fraction of the dead ends into loops, which defeats wall-following.
+   * @param {!MMAdj} adj
+   * @param {!MMOpen} open
+   * @param {!MMRng} rng
+   * @param {number} p
+   * @return {undefined}
+   */
   function braid(adj, open, rng, p) {
     if (!(p > 0)) return;
     var deadEnds = [], i;
@@ -291,6 +354,13 @@
   }
 
   // BFS, so the route returned is also the shortest.
+  /**
+   * @param {!MMAdj} adj
+   * @param {!MMOpen} open
+   * @param {number} start
+   * @param {number} end
+   * @return {?Array<number>} the shortest route, or null if there is none
+   */
   function solve(adj, open, start, end) {
     var prev = new Int32Array(adj.length).fill(-1);
     var seen = new Uint8Array(adj.length);
@@ -319,6 +389,11 @@
 
   // Size of the component containing `from`, ignoring which edges are open.
   // Used to prove the surface graph is connected before carving it.
+  /**
+   * @param {!MMAdj} adj
+   * @param {number} from
+   * @return {number}
+   */
   function componentSize(adj, from) {
     var seen = new Uint8Array(adj.length);
     var queue = [from], head = 0, count = 0;

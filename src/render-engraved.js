@@ -31,6 +31,7 @@
 (function (global) {
   'use strict';
 
+  /** @const {string} */
   var INK = '#111111';
 
   /* Corridor width and wall thickness, in abstract units. Walls are thinner
@@ -38,7 +39,9 @@
    * rather than as a texture with holes punched in it. */
   var Uc = 1, Uw = 0.55;
 
+  /** @const {number} */
   var OUTLINE = 0.075;     // the engraved contour
+  /** @const {number} */
   var HATCH = 0.055;       // the shading lines inside it
   /* Gap between hatch lines, centre to centre. Four lines cross a wall at every
    * preset -- the ratio to Uw is what fixes that, not the scale -- so what
@@ -52,19 +55,37 @@
    * Hatched one way only, not cross-hatched. Two passes doubles the ink and the
    * walls stop being a background the corridors sit in front of; on a maze the
    * walls are the thing you want to look past. */
+  /** @const {number} */
   var SPACING = 0.14;
 
   var mL = 1.0, mR = 1.0, mT = 2.6, mB = 3.8;
 
+  /** @const {string} */
   var FONT = 'font-family="Helvetica,Arial,sans-serif"';
 
   // Even grid index = wall or pillar unit, odd = cell unit. Same scheme as
   // src/render.js, with this renderer's own weights.
+  /**
+   * @param {number} i
+   * @return {number}
+   */
   function pos(i) { return Math.ceil(i / 2) * Uw + Math.floor(i / 2) * Uc; }
+  /**
+   * @param {number} i
+   * @return {number}
+   */
   function span(i) { return (i % 2 === 0) ? Uw : Uc; }
 
+  /**
+   * @param {number} n
+   * @return {number}
+   */
   function fmt(n) { return Math.round(n * 1000) / 1000; }
 
+  /**
+   * @param {?} s
+   * @return {string} safe to drop into markup
+   */
   function esc(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
@@ -75,19 +96,40 @@
    *
    * Emitted in a fixed order -- verticals down each column, then horizontals
    * along each row -- so the decomposition is reproducible. */
+  /**
+   * @param {!MMSolidGrid} grid
+   * @return {{verts: !Array<!MMLatticeVert>,
+   *           entries: !Array<!MMLatticeEntry>}}
+   */
   function outlineLattice(grid) {
     var gw = grid.gw, gh = grid.gh, solid = grid.solid;
     var vw = gw + 1;
-    var verts = [], entries = [], i, j;
+    /** @type {!Array<!MMLatticeVert>} */
+    var verts = [];
+    /** @type {!Array<!MMLatticeEntry>} */
+    var entries = [];
+    var i, j;
 
     for (j = 0; j <= gh; j++) {
       for (i = 0; i <= gw; i++) verts.push({ key: j * vw + i, xy: [pos(i), pos(j)] });
     }
 
+    /**
+     * @param {number} x
+     * @param {number} y
+     * @return {number} 1 for solid; outside the grid counts as open
+     */
     function at(x, y) {
       if (x < 0 || y < 0 || x >= gw || y >= gh) return 0;
       return solid[y * gw + x];
     }
+    /**
+     * @param {number} ai
+     * @param {number} aj
+     * @param {number} bi
+     * @param {number} bj
+     * @return {undefined}
+     */
     function edge(ai, aj, bi, bj) {
       entries.push({
         ak: aj * vw + ai, a: [pos(ai), pos(aj)],
@@ -111,9 +153,14 @@
     return { verts: verts, entries: entries };
   }
 
+  /**
+   * @param {!MMEngravedOpts} o
+   * @return {string}
+   */
   function toSvg(o) {
-    var LATTICE = (typeof module !== 'undefined' && module.exports)
-      ? require('./lattice.js') : global.MM.lattice;
+    var LATTICE = /** @type {!MMLatticeApi} */ (
+      (typeof module !== 'undefined' && module.exports)
+        ? require('./lattice.js') : global.MM.lattice);
 
     var grid = o.grid, maze = o.maze;
     var gw = grid.gw, gh = grid.gh;
@@ -225,6 +272,11 @@
   }
 
   // The nominal viewBox for a w x h maze; src/presets.js is solved against it.
+  /**
+   * @param {number} w
+   * @param {number} h
+   * @return {!MMViewBox}
+   */
   function viewBox(w, h) {
     return { w: (Uc + Uw) * w + Uw + mL + mR, h: (Uc + Uw) * h + Uw + mT + mB };
   }

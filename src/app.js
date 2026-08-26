@@ -27,9 +27,12 @@
 (function () {
   'use strict';
 
-  var MM = window.MM;
+  var MM = /** @type {!MMNamespace} */ (window.MM);
   var PRESETS = MM.presets;
-  var els = {};
+  /* Cast: init() fills this in from the id list below, so it is empty until
+   * then. The ids are declared in build/externs, which is also what keeps
+   * els[id] and els.name the same property in a compiled bundle. */
+  var els = /** @type {!MMEls} */ ({});
   var pending = 0;
 
   /* Every style the app knows about, in one place, so that adding one does not
@@ -42,6 +45,7 @@
    *           it the look it is copied from; a depth-first carve draws the same
    *           style as long snaking walls, which is a different picture. The
    *           other three were designed against depth-first and stay there. */
+  /** @const {!MMStyleTable} */
   var STYLES = {
     escher: { lit: true, carver: 'dfs' },
     iso: { lit: false, carver: 'dfs' },
@@ -51,9 +55,11 @@
     theta: { lit: false, carver: 'dfs' }
   };
 
+  /** @const {!MMCarverTable} */
   var CARVERS = { auto: 1, dfs: 1, kruskal: 1, wilson: 1, grow: 1 };
 
   // 'auto' is a UI convenience, never a value the generators see.
+  /** @return {string} */
   function activeCarver() {
     return state.carver === 'auto' ? STYLES[state.style].carver : state.carver;
   }
@@ -61,6 +67,7 @@
   /* One description of the carve, resolved once per draw and handed to both the
    * generator and the caption. Keeping the label beside the parameters is what
    * stops the printed answer key drifting from what was actually run. */
+  /** @return {!MMCarveSpec} */
   function carveSpec() {
     var name = activeCarver();
     if (name !== 'grow') return { name: name, opts: null, label: name };
@@ -71,6 +78,7 @@
     };
   }
 
+  /** @type {!MMState} */
   var state = {
     style: 'escher',
     seed: '',
@@ -82,6 +90,7 @@
   };
 
   // ---------------------------------------------------------------- url hash
+  /** @return {boolean} whether the hash named a seed */
   function readHash() {
     var raw = location.hash.replace(/^#/, '');
     if (!raw) return false;
@@ -115,6 +124,7 @@
     return haveSeed;
   }
 
+  /** @return {undefined} */
   function writeHash() {
     var next = 'style=' + state.style +
       '&seed=' + encodeURIComponent(state.seed) +
@@ -133,6 +143,11 @@
   // --------------------------------------------------------------- pipelines
   /* The Escher and engraved styles are two drawings of the same flat grid, so
    * they generate through here rather than each spelling it out. */
+  /**
+   * @param {!MMEscherPreset} cfg
+   * @param {!MMCarveSpec} carve
+   * @return {!MMFlatMaze}
+   */
   function flatMaze(cfg, carve) {
     return MM.maze.generate({
       width: cfg.w, height: cfg.h, rng: MM.rng.makeRng(state.seed),
@@ -140,6 +155,11 @@
     });
   }
 
+  /**
+   * @param {!MMPreset} preset
+   * @param {!MMCarveSpec} carve
+   * @return {!MMBuilt}
+   */
   function buildEscher(preset, carve) {
     var cfg = preset.escher;
     var rng = MM.rng.makeRng(state.seed);
@@ -164,13 +184,23 @@
     };
   }
 
+  /**
+   * @param {!MMPreset} preset
+   * @param {!MMCarveSpec} carve
+   * @return {!MMBuilt}
+   */
   function buildIso(preset, carve) {
     var cfg = preset.iso;
     var rng = MM.rng.makeRng(state.seed);
 
     var frame = MM.terrain.frame(cfg.halfWidth, cfg.depth);
+    /* totalRise is what fixes the height of the printed picture -- see
+     * src/presets.js. Leaving it out let the landscape climb terraces*maxRise
+     * instead, which overshot A4 by nine to sixteen percent and printed the
+     * whole style letterboxed. */
     var H = MM.terrain.build({
-      frame: frame, terraces: cfg.terraces, maxRise: cfg.maxRise, rng: rng
+      frame: frame, terraces: cfg.terraces, maxRise: cfg.maxRise,
+      totalRise: cfg.totalRise, rng: rng
     });
     var surface = MM.surface.build(H, frame);
 
@@ -204,6 +234,11 @@
 
   /* The honeycomb is entirely determined by cols/rows -- src/hex.js draws no
    * randomness at all -- so the seed goes straight into the carve. */
+  /**
+   * @param {!MMPreset} preset
+   * @param {!MMCarveSpec} carve
+   * @return {!MMBuilt}
+   */
   function buildHex(preset, carve) {
     var cfg = preset.hex;
     var rng = MM.rng.makeRng(state.seed);
@@ -235,6 +270,11 @@
   /* The flat grid a third time, drawn as hatched blocks rather than as lines.
    * Reuses toSolidGrid, the same expansion the Escher style needs, because a
    * filled wall has to know its own inside and a wall lattice does not. */
+  /**
+   * @param {!MMPreset} preset
+   * @param {!MMCarveSpec} carve
+   * @return {!MMBuilt}
+   */
   function buildEngraved(preset, carve) {
     var maze = flatMaze(preset.engrave, carve);
     var path = MM.maze.solve(maze);
@@ -256,6 +296,11 @@
    * sheet is not, so src/render-theta.js stretches the drawing into an ellipse
    * by the exact factor that fills A4 -- which is why this preset has a ring
    * count and no second dimension. */
+  /**
+   * @param {!MMPreset} preset
+   * @param {!MMCarveSpec} carve
+   * @return {!MMBuilt}
+   */
   function buildTheta(preset, carve) {
     var cfg = preset.theta;
     var rng = MM.rng.makeRng(state.seed);
@@ -285,6 +330,11 @@
   /* The honeycomb through the rounded-wall renderer. Nothing here is a second
    * implementation of anything: src/hex.js hands over the same kind of wall
    * lattice src/maze.js does, and the renderer cannot tell them apart. */
+  /**
+   * @param {!MMPreset} preset
+   * @param {!MMCarveSpec} carve
+   * @return {!MMBuilt}
+   */
   function buildHexRound(preset, carve) {
     var cfg = preset.hexround;
     var rng = MM.rng.makeRng(state.seed);
@@ -319,9 +369,11 @@
     };
   }
 
+  /** @return {undefined} */
   function draw() {
     var preset = PRESETS[state.size];
     var carve = carveSpec();
+    /** @type {!MMBuilt} */
     var built;
     try {
       built = (state.style === 'iso') ? buildIso(preset, carve)
@@ -345,12 +397,12 @@
     els.carver.value = state.carver;
     els.carverOut.textContent = (state.carver === 'auto')
       ? 'auto \u2192 ' + STYLES[state.style].carver : '\u00a0';
-    els.bias.value = state.bias;
+    els.bias.value = String(state.bias);
     els.biasOut.textContent = state.bias + '%';
     // The bias only means anything to Growing Tree; the others take no
     // parameters at all, so the slider hides rather than sitting there inert.
     els.biasField.hidden = (activeCarver() !== 'grow');
-    els.light.value = state.light;
+    els.light.value = String(state.light);
     els.lightOut.textContent = state.light + '°';
     els.solution.checked = state.solution;
     els.stats.textContent = built.stats;
@@ -364,11 +416,17 @@
 
   // Coalesce slider bursts into one render per frame; the larger presets are a
   // few thousand cells and do not need redrawing per pixel of drag.
+  /** @return {undefined} */
   function scheduleDraw() {
     if (pending) cancelAnimationFrame(pending);
     pending = requestAnimationFrame(function () { pending = 0; draw(); });
   }
 
+  /**
+   * @param {!HTMLButtonElement} button
+   * @param {string} message
+   * @return {undefined}
+   */
   function flash(button, message) {
     var original = button.textContent;
     button.textContent = message;
@@ -380,6 +438,7 @@
   }
 
   // -------------------------------------------------------------------- init
+  /** @return {undefined} */
   function init() {
     [
       'stage', 'style', 'seed', 'size', 'carver', 'carverOut', 'bias',

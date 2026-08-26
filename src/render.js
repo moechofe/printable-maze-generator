@@ -14,7 +14,9 @@
 (function (global) {
   'use strict';
 
+  /** @const {number} */
   var Uc = 1;      // corridor width, in abstract units
+  /** @const {number} */
   var Uw = 0.62;   // wall thickness -- deliberately thinner than a corridor so
                    // that block overhang never crowds a passage shut
 
@@ -24,6 +26,7 @@
    *   floor 255 / 250  >  top 232  >  shadow 205  >  lit 168  >  mid 125  >  dark 74
    * The near-white pair is the deliberately subtle floor variation; every
    * other step is >= 18 levels apart. */
+  /** @const */
   var C = {
     floor:  '#ffffff',
     floorB: '#fafafa',
@@ -35,14 +38,31 @@
     ink:    '#000000'
   };
 
+  /** @const {number} */
   var STROKE = 0.045;
 
   // Even grid index = wall/pillar unit, odd = cell unit.
+  /**
+   * @param {number} i
+   * @return {number} where that grid line falls, in drawing units
+   */
   function pos(i) { return Math.ceil(i / 2) * Uw + Math.floor(i / 2) * Uc; }
+  /**
+   * @param {number} i
+   * @return {number} how wide that unit is
+   */
   function span(i) { return (i % 2 === 0) ? Uw : Uc; }
 
+  /**
+   * @param {number} n
+   * @return {number}
+   */
   function fmt(n) { return Math.round(n * 1000) / 1000; }
 
+  /**
+   * @param {!Array<!MMPoint>} points
+   * @return {string} a closed SVG path
+   */
   function pathD(points) {
     var out = 'M';
     for (var i = 0; i < points.length; i++) {
@@ -54,8 +74,18 @@
 
   // Monotone chain hull -- used for cast shadows, which are the silhouette of
   // a square swept along the shadow offset.
+  /**
+   * @param {!Array<!MMPoint>} pts
+   * @return {!Array<!MMPoint>} the convex hull, counter-clockwise
+   */
   function hull(pts) {
     var p = pts.slice().sort(function (a, b) { return a[0] - b[0] || a[1] - b[1]; });
+    /**
+     * @param {!MMPoint} o
+     * @param {!MMPoint} a
+     * @param {!MMPoint} b
+     * @return {number}
+     */
     function cross(o, a, b) {
       return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
     }
@@ -72,21 +102,38 @@
     return lower.concat(upper);
   }
 
+  /**
+   * @param {!Array<!MMPoint>} points
+   * @param {string} fill
+   * @return {string} one outlined block face
+   */
   function face(points, fill) {
     return '<path d="' + pathD(points) + '" fill="' + fill +
       '" stroke="' + C.ink + '" stroke-width="' + STROKE + '" stroke-linejoin="round"/>';
   }
 
+  /**
+   * @param {number} dot how squarely this face meets the light
+   * @return {string} a tone from the ramp, never light enough to read as floor
+   */
   function shadeFor(dot) {
     if (dot > 0.25) return C.lit;
     if (dot < -0.25) return C.dark;
     return C.mid;
   }
 
+  /**
+   * @param {?} s
+   * @return {string} safe to drop into markup
+   */
   function esc(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
+  /**
+   * @param {!MMEscherOpts} o
+   * @return {string} the whole drawing, as one SVG element
+   */
   function toSvg(o) {
     var grid = o.grid, regions = o.regions;
     var gw = grid.gw, gh = grid.gh, solid = grid.solid;

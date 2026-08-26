@@ -28,9 +28,12 @@
 (function (global) {
   'use strict';
 
+  /** @const {string} */
   var INK = '#111111';
+  /** @const {number} */
   var TAU = Math.PI * 2;
 
+  /** @const {number} */
   var WALL = 0.3;          // in ring units, where a ring is 1 unit thick
   /* The bottom margin carries both the FINISH label and the caption, and the
    * exit arrow reaches almost a unit past the rim before either of them starts,
@@ -40,12 +43,22 @@
 
   // Leave a sliver of the sheet unused so rounding can never tip the drawing
   // over the edge and cost it a whole page.
+  /** @const {number} */
   var FILL_TARGET = 0.985;
 
+  /** @const {string} */
   var FONT = 'font-family="Helvetica,Arial,sans-serif"';
 
+  /**
+   * @param {number} n
+   * @return {number}
+   */
   function fmt(n) { return Math.round(n * 1000) / 1000; }
 
+  /**
+   * @param {?} s
+   * @return {string} safe to drop into markup
+   */
   function esc(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
@@ -56,9 +69,15 @@
    *   vbH = 2Rk + wall + mT + mB
    *
    * so k falls straight out of asking for vbH / vbW to be the A4 ratio. */
+  /**
+   * @param {number} radius
+   * @param {number=} wall
+   * @return {!MMThetaFit}
+   */
   function fit(radius, wall) {
-    var PAPER = (typeof module !== 'undefined' && module.exports)
-      ? require('./paper.js') : global.MM.paper;
+    var PAPER = /** @type {!MMPaperApi} */ (
+      (typeof module !== 'undefined' && module.exports)
+        ? require('./paper.js') : global.MM.paper);
     wall = (wall == null) ? WALL : wall;
 
     var w = 2 * radius + wall + mL + mR;
@@ -74,6 +93,10 @@
     };
   }
 
+  /**
+   * @param {!MMThetaOpts} o
+   * @return {string}
+   */
   function toSvg(o) {
     var g = o.grid, open = o.open;
     var wall = (o.wall == null) ? WALL : o.wall;
@@ -82,7 +105,16 @@
     var k = box.k;
     var i;
 
+    /**
+     * @param {number} r
+     * @param {number} a
+     * @return {!MMPoint} on the ellipse, the stretch baked in
+     */
     function P(r, a) { return [r * Math.cos(a), r * Math.sin(a) * k]; }
+    /**
+     * @param {!MMPoint} p
+     * @return {string}
+     */
     function pt(p) { return fmt(p[0]) + ' ' + fmt(p[1]); }
 
     /* Collect the standing walls, then merge them. Arcs on one ring are keyed
@@ -160,8 +192,9 @@
     // --- solution -----------------------------------------------------------
     /* Cell centres, plus one step out through the exit so the route leaves the
      * sheet where the arrow is. */
-    var THETA = (typeof module !== 'undefined' && module.exports)
-      ? require('./theta.js') : global.MM.theta;
+    var THETA = /** @type {!MMThetaApi} */ (
+      (typeof module !== 'undefined' && module.exports)
+        ? require('./theta.js') : global.MM.theta);
 
     var exitA = TAU * (g.cells[g.end].slot + 0.5) / g.cells[g.end].count;
     var solution = '';

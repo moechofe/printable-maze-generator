@@ -28,13 +28,16 @@
 (function (global) {
   'use strict';
 
+  /** @const {string} */
   var INK = '#111111';
 
   /* Stroke widths in hex circumradius units. A hex is sqrt(3) ~ 1.73 units
    * across, so at the Insane preset -- the smallest cells the app offers -- one
    * unit is about 3.1mm and a wall lands near 0.31mm, comfortably above what a
    * 600dpi laser resolves. */
+  /** @const {number} */
   var WALL = 0.10;
+  /** @const {number} */
   var BORDER = 0.17;
 
   // Margins, in the same units. Top clears the START arrow and its label,
@@ -42,14 +45,27 @@
   // rows against these numbers to fill A4.
   var mL = 1.2, mR = 1.2, mT = 3.2, mB = 4.8;
 
+  /** @const {string} */
   var FONT = 'font-family="Helvetica,Arial,sans-serif"';
 
+  /**
+   * @param {number} n
+   * @return {number}
+   */
   function fmt(n) { return Math.round(n * 1000) / 1000; }
 
+  /**
+   * @param {?} s
+   * @return {string} safe to drop into markup
+   */
   function esc(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
+  /**
+   * @param {!Array<!MMPoint>} pts
+   * @return {string} a closed outline
+   */
   function polyD(pts) {
     var d = 'M';
     for (var i = 0; i < pts.length; i++) {
@@ -59,6 +75,10 @@
     return d + 'Z';
   }
 
+  /**
+   * @param {!Array<!MMPoint>} pts
+   * @return {string} an open run
+   */
   function lineD(pts) {
     var d = 'M';
     for (var i = 0; i < pts.length; i++) {
@@ -68,6 +88,10 @@
     return d;
   }
 
+  /**
+   * @param {!MMHexOpts} o
+   * @return {string}
+   */
   function toSvg(o) {
     var g = o.grid, open = o.open;
     var i, k;
@@ -77,7 +101,10 @@
     var vbH = (g.maxY - g.minY) + mT + mB;
 
     // --- walls --------------------------------------------------------------
-    var inner = [], border = [];
+    /** @type {!Array<string>} */
+    var inner = [];
+    /** @type {!Array<string>} */
+    var border = [];
     for (i = 0; i < g.edgeOrder.length; i++) {
       var ek = g.edgeOrder[i];
       if (open[ek]) continue;                       // carved: this is a passage
@@ -87,6 +114,11 @@
       if (g.edgeCells[ek] === 1) border.push(d); else inner.push(d);
     }
 
+    /**
+     * @param {!Array<string>} list
+     * @param {number} width
+     * @return {string}
+     */
     function strokeGroup(list, width) {
       if (!list.length) return '';
       return '<path d="' + list.join('') + '" fill="none" stroke="' + INK +

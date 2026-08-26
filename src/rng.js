@@ -12,8 +12,13 @@
   'use strict';
 
   // Ambiguous glyphs (I, O) left out so a seed can be read off paper.
+  /** @const {string} */
   var ALPHABET = '0123456789ABCDEFGHJKLMNPQRSTUVWXYZ';
 
+  /**
+   * @param {string} str
+   * @return {function(): number} a 32-bit seed generator over that string
+   */
   function xmur3(str) {
     var h = 1779033703 ^ str.length;
     for (var i = 0; i < str.length; i++) {
@@ -28,6 +33,10 @@
     };
   }
 
+  /**
+   * @param {number} a
+   * @return {function(): number} the stream, each draw in [0, 1)
+   */
   function mulberry32(a) {
     return function () {
       a |= 0;
@@ -38,6 +47,10 @@
     };
   }
 
+  /**
+   * @param {?} seedString anything; it is stringified and hashed
+   * @return {!MMRng}
+   */
   function makeRng(seedString) {
     var next = mulberry32(xmur3(String(seedString))());
     return {
@@ -56,9 +69,15 @@
     };
   }
 
+  /**
+   * @param {number=} len
+   * @return {string}
+   */
   function randomSeed(len) {
     len = len || 6;
-    var bytes, i, out = '';
+    /** @type {(!Uint8Array|!Array<number>)} */
+    var bytes;
+    var i, out = '';
     if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
       bytes = new Uint8Array(len);
       crypto.getRandomValues(bytes);
@@ -72,6 +91,10 @@
 
   // Any text works as a seed (it gets hashed); this only normalises how it
   // is displayed and stored so "abc" and "ABC " are the same maze.
+  /**
+   * @param {?} text
+   * @return {string}
+   */
   function normalizeSeed(text) {
     return String(text == null ? '' : text).trim().toUpperCase();
   }

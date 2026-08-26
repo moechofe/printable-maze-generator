@@ -24,27 +24,57 @@
 (function (global) {
   'use strict';
 
-  var TOP = 0, FX = 1, FY = 2;
+  /** @const {number} */
+  var TOP = 0;
+  /** @const {number} */
+  var FX = 1;
+  /** @const {number} */
+  var FY = 2;
 
+  /**
+   * @param {!Array<number>} p
+   * @return {string}
+   */
   function key3(p) { return p[0] + ',' + p[1] + ',' + p[2]; }
 
+  /**
+   * @param {!Array<number>} a
+   * @param {!Array<number>} b
+   * @return {string} the same key from either face sharing the edge
+   */
   function edgeKey(a, b) {
     var ka = key3(a), kb = key3(b);
     return ka < kb ? ka + '|' + kb : kb + '|' + ka;
   }
 
+  /**
+   * @param {!Int32Array} H
+   * @param {!MMFrame} frame
+   * @return {!MMSurface} the visible skin, as a graph of maze cells
+   */
   function build(H, frame) {
     var n = frame.n, mask = frame.mask;
 
+    /**
+     * @param {number} x
+     * @param {number} y
+     * @return {boolean}
+     */
     function inside(x, y) {
-      return x >= 0 && y >= 0 && x < n && y < n && mask[y * n + x];
+      return x >= 0 && y >= 0 && x < n && y < n && !!mask[y * n + x];
     }
+    /**
+     * @param {number} x
+     * @param {number} y
+     * @return {number}
+     */
     function heightAt(x, y) {
       // Outside the frame the ground is at zero, so the near rim of the slab
       // shows a full cliff rather than stopping in mid air.
       return inside(x, y) ? H[y * n + x] : 0;
     }
 
+    /** @type {!Array<!MMFace>} */
     var faces = [];
     for (var y = 0; y < n; y++) {
       for (var x = 0; x < n; x++) {
@@ -76,8 +106,12 @@
 
     // Bucket every face edge. Insertion order is deterministic, which keeps the
     // adjacency lists -- and so the carved maze -- reproducible.
-    var buckets = Object.create(null);
-    var edgeEnds = Object.create(null);
+    var buckets =
+      /** @type {!Object<string, !Array<number>>} */ (Object.create(null));
+    var edgeEnds =
+      /** @type {!Object<string, !Array<!Array<number>>>} */
+      (Object.create(null));
+    /** @type {!Array<string>} */
     var order = [];
 
     for (var f = 0; f < faces.length; f++) {
@@ -94,6 +128,7 @@
       }
     }
 
+    /** @type {!MMAdj} */
     var adj = [];
     for (var i = 0; i < faces.length; i++) adj.push([]);
 
@@ -129,16 +164,28 @@
    * bottom-right is (u,v) = (U, U+V), which is column (U + V/2, V/2). frame()
    * keeps V even so both land on integers. Both are top faces, so both exist
    * whatever the terrain does. */
+  /**
+   * @param {!MMSurface} surface
+   * @return {number}
+   */
   function startFace(surface) {
     var f = surface.frame;
     return surface.topOf[f.halfWidth * surface.n + 0];
   }
+  /**
+   * @param {!MMSurface} surface
+   * @return {number}
+   */
   function endFace(surface) {
     var f = surface.frame;
     var x = f.halfWidth + f.depth / 2, y = f.depth / 2;
     return surface.topOf[y * surface.n + x];
   }
 
+  /**
+   * @param {!MMSurface} surface
+   * @return {string}
+   */
   function signature(surface) {
     var out = [];
     for (var i = 0; i < surface.faces.length; i++) {

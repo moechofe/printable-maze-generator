@@ -43,8 +43,14 @@
 (function (global) {
   'use strict';
 
+  /** @const {number} */
   var EPS = 1e-9;
 
+  /**
+   * @param {!MMPoint} a
+   * @param {!MMPoint} b
+   * @return {!Array<number>} [ux, uy, length] -- a direction and how far it ran
+   */
   function unit(a, b) {
     var dx = b[0] - a[0], dy = b[1] - a[1];
     var len = Math.sqrt(dx * dx + dy * dy) || 1;
@@ -56,10 +62,22 @@
    * Keys are whatever the grid module uses to name a lattice point, as long as
    * two segments meeting at a point produce the SAME key -- which is why every
    * grid here works in exact integers rather than in floats. */
+  /**
+   * @param {!Array<!MMLatticeEntry>} entries
+   * @param {?Array<!MMLatticeVert>=} preVerts
+   * @return {!MMLattice}
+   */
   function build(entries, preVerts) {
-    var index = Object.create(null);
+    // Untemplatised on purpose: a grid names its lattice points however it
+    // likes -- src/hex.js with strings, src/render-engraved.js with integers.
+    var index = /** @type {!Object} */ (Object.create(null));
     var verts = [], segs = [], incident = [];
 
+    /**
+     * @param {(string|number)} key
+     * @param {!MMPoint} xy
+     * @return {number}
+     */
     function vertexId(key, xy) {
       var id = index[key];
       if (id === undefined) {
@@ -96,8 +114,19 @@
     return { verts: verts, segs: segs, incident: incident, count: segs.length };
   }
 
+  /**
+   * @param {!MMLattice} L
+   * @param {number} v
+   * @return {number} how many walls stand at this lattice point
+   */
   function degree(L, v) { return L.incident[v].length; }
 
+  /**
+   * @param {!MMLattice} L
+   * @param {number} seg
+   * @param {number} v
+   * @return {number} the far end of that wall
+   */
   function other(L, seg, v) {
     return L.segs[seg][0] === v ? L.segs[seg][1] : L.segs[seg][0];
   }
@@ -105,11 +134,20 @@
   /* Greedy maximal-polyline decomposition. Returns arrays of vertex ids.
    * Every segment is consumed exactly once; test/verify.js checks that rather
    * than taking it on trust. */
+  /**
+   * @param {!MMLattice} L
+   * @return {!Array<!Array<number>>} one array of vertex ids per stroke
+   */
   function decompose(L) {
     var used = new Uint8Array(L.count);
     var paths = [];
 
     // Best continuation from `v`, having arrived along direction `dir`.
+    /**
+     * @param {number} v
+     * @param {?Array<number>} dir null on the first step of a stroke
+     * @return {number} the segment to take, or -1 if none is left
+     */
     function step(v, dir) {
       var list = L.incident[v];
       var best = -1, bestDot = -Infinity;
@@ -126,6 +164,10 @@
       return best;
     }
 
+    /**
+     * @param {number} startV
+     * @return {undefined}
+     */
     function walk(startV) {
       var pts = [startV];
       var cur = startV, dir = null;
@@ -142,6 +184,10 @@
       if (pts.length > 1) paths.push(pts);
     }
 
+    /**
+     * @param {number} wantDegree -1 for any degree at all
+     * @return {undefined}
+     */
     function sweep(wantDegree) {
       for (var v = 0; v < L.verts.length; v++) {
         if (wantDegree >= 0 && degree(L, v) !== wantDegree) continue;
@@ -157,6 +203,11 @@
   }
 
   // Drop vertices that are not turns, so every interior point is a real corner.
+  /**
+   * @param {!MMLattice} L
+   * @param {!Array<number>} ids
+   * @return {!Array<!MMPoint>}
+   */
   function simplify(L, ids) {
     var pts = [];
     for (var i = 0; i < ids.length; i++) pts.push(L.verts[ids[i]]);
@@ -170,6 +221,10 @@
     return out;
   }
 
+  /**
+   * @param {number} n
+   * @return {number}
+   */
   function fmt(n) { return Math.round(n * 1000) / 1000; }
 
   /* One polyline as an SVG subpath, corners replaced by arc fillets.
@@ -180,6 +235,11 @@
    * at half the shorter leg so two corners sharing a leg cannot overrun each
    * other, and the radius is reduced to match rather than the cut-back being
    * clipped, or the arc would stop being tangent and the join would kink. */
+  /**
+   * @param {!Array<!MMPoint>} pts
+   * @param {number} radius
+   * @return {string} an SVG subpath, corners replaced by arc fillets
+   */
   function filletedPath(pts, radius) {
     var d = 'M' + fmt(pts[0][0]) + ' ' + fmt(pts[0][1]);
 

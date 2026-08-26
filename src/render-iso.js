@@ -21,17 +21,27 @@
 (function (global) {
   'use strict';
 
+  /** @const {number} */
   var COS30 = Math.sqrt(3) / 2;
 
+  /** @const {string} */
   var INK = '#111111';
+  /** @const {number} */
   var STROKE = 0.085;      // base stroke width, in voxel units
+  /** @const {number} */
   var STROKE_VARY = 0.022;
+  /** @const {number} */
   var BOW = 0.05;          // how far a stroke bows off true
+  /** @const {number} */
   var OVERSHOOT = 0.05;    // pen carrying past the corner
 
   /* Voxel space to screen. A (1,1,1) displacement maps to (0,0), so that
    * diagonal is the view axis -- which is what src/terrain.js reasons about
    * when it proves nothing is occluded. */
+  /**
+   * @param {!Array<number>} p a voxel-space point, [x, y, z]
+   * @return {!MMPoint}
+   */
   function project(p) {
     return [
       (p[0] - p[1]) * COS30,
@@ -39,8 +49,16 @@
     ];
   }
 
+  /**
+   * @param {number} n
+   * @return {number}
+   */
   function fmt(n) { return Math.round(n * 1000) / 1000; }
 
+  /**
+   * @param {?} s
+   * @return {string} safe to drop into markup
+   */
   function esc(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
@@ -48,6 +66,12 @@
   /* One pen stroke: jittered ends, a slight bow through the middle, and a
    * little overshoot past each corner. The overshoot is what reads as
    * hand-drawn -- machine strokes stop exactly on the join. */
+  /**
+   * @param {!MMPoint} a
+   * @param {!MMPoint} b
+   * @param {!MMRng} rng the ink stream, deliberately not the maze's
+   * @return {string}
+   */
   function inkStroke(a, b, rng) {
     var dx = b[0] - a[0], dy = b[1] - a[1];
     var len = Math.sqrt(dx * dx + dy * dy) || 1;
@@ -73,12 +97,20 @@
       '" stroke-width="' + fmt(w) + '"/>';
   }
 
+  /**
+   * @param {!Array<!MMPoint>} pts
+   * @return {!MMPoint}
+   */
   function centroid(pts) {
     var x = 0, y = 0;
     for (var i = 0; i < pts.length; i++) { x += pts[i][0]; y += pts[i][1]; }
     return [x / pts.length, y / pts.length];
   }
 
+  /**
+   * @param {!MMIsoOpts} o
+   * @return {string}
+   */
   function toSvg(o) {
     var surface = o.surface, open = o.open;
     var faces = surface.faces;
@@ -105,6 +137,10 @@
 
     // --- start and finish, filled solid like the reference ------------------
     var startIdx = o.startFace, endIdx = o.endFace;
+    /**
+     * @param {number} idx
+     * @return {string}
+     */
     function facePoly(idx) {
       var pts = screen[idx], d = 'M';
       for (var j = 0; j < 4; j++) {

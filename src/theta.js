@@ -32,11 +32,16 @@
 (function (global) {
   'use strict';
 
+  /** @const {number} */
   var TAU = Math.PI * 2;
 
   /* How many cells each ring is cut into. Ring 0 is the hub -- one cell, the
    * disc in the middle -- and every ring after it keeps its parent's count or
    * doubles until a cell is narrower than two units. */
+  /**
+   * @param {number} rings
+   * @return {!Array<number>} how many cells each ring is cut into
+   */
   function ringCounts(rings) {
     var n = [1];
     for (var r = 1; r < rings; r++) {
@@ -47,9 +52,17 @@
     return n;
   }
 
+  /**
+   * @param {number} rings
+   * @return {!MMThetaGrid}
+   */
   function build(rings) {
     var n = ringCounts(rings);
-    var index = [], cells = [], r, i;
+    /** @type {!Array<!Array<number>>} */
+    var index = [];
+    /** @type {!Array<!MMThetaCell>} */
+    var cells = [];
+    var r, i;
 
     for (r = 0; r < rings; r++) {
       var row = [];
@@ -60,14 +73,30 @@
       index.push(row);
     }
 
-    var adj = [], walls = Object.create(null), edgeOrder = [];
+    /** @type {!MMAdj} */
+    var adj = [];
+    var walls =
+      /** @type {!Object<string, !MMThetaWall>} */ (Object.create(null));
+    /** @type {!Array<string>} */
+    var edgeOrder = [];
     for (i = 0; i < cells.length; i++) adj.push([]);
 
+    /**
+     * @param {string} key
+     * @param {!MMThetaWall} geom
+     * @return {undefined}
+     */
     function wall(key, geom) {
       if (walls[key]) return;
       walls[key] = geom;
       edgeOrder.push(key);
     }
+    /**
+     * @param {number} a
+     * @param {number} b
+     * @param {string} key
+     * @return {undefined}
+     */
     function link(a, b, key) {
       adj[a].push({ to: b, key: key });
       adj[b].push({ to: a, key: key });
@@ -82,7 +111,10 @@
         // boundaries would put a duplicate edge between the same pair.
         if (n[r] === 2 && i === 1) break;
         var key = 'R:' + r + ':' + next;
-        wall(key, { type: 'R', r: r, angle: TAU * next / n[r] });
+        // Cast: a radial wall has an angle and no span. The renderer switches
+        // on `type` and then reads only the fields that tag promises.
+        wall(key, /** @type {!MMThetaWall} */ (
+          { type: 'R', r: r, angle: TAU * next / n[r] }));
         link(index[r][i], index[r][next], key);
       }
     }
@@ -96,10 +128,10 @@
       for (i = 0; i < n[r + 1]; i++) {
         var parent = Math.floor(i / ratio);
         var k2 = 'C:' + (r + 1) + ':' + i;
-        wall(k2, {
+        wall(k2, /** @type {!MMThetaWall} */ ({
           type: 'C', r: r + 1,
           a0: TAU * i / n[r + 1], a1: TAU * (i + 1) / n[r + 1]
-        });
+        }));
         link(index[r][parent], index[r + 1][i], k2);
       }
     }
@@ -107,13 +139,14 @@
     /* The outer rim, which no carve can open -- it is held by one cell, exactly
      * like the perimeter of the honeycomb. Kept in the wall list so the
      * renderer draws it, and out of the adjacency so nothing can carve it. */
+    /** @type {!Array<string>} */
     var rim = [];
     for (i = 0; i < n[rings - 1]; i++) {
       var kr = 'C:' + rings + ':' + i;
-      wall(kr, {
+      wall(kr, /** @type {!MMThetaWall} */ ({
         type: 'C', r: rings,
         a0: TAU * i / n[rings - 1], a1: TAU * (i + 1) / n[rings - 1]
-      });
+      }));
       rim.push(kr);
     }
 
@@ -133,6 +166,11 @@
   }
 
   // Where a cell's centre sits, before the sheet is stretched into an ellipse.
+  /**
+   * @param {!MMThetaGrid} g
+   * @param {number} idx
+   * @return {!MMPoint}
+   */
   function centre(g, idx) {
     var c = g.cells[idx];
     if (c.ring === 0) return [0, 0];
@@ -140,6 +178,10 @@
     return [rr * Math.cos(a), rr * Math.sin(a)];
   }
 
+  /**
+   * @param {!MMThetaGrid} g
+   * @return {string}
+   */
   function signature(g) {
     return g.rings + ':' + g.counts.join(',') + ':' + g.cells.length;
   }
