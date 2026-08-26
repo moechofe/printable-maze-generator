@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Marcel Maze Generator</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="topbar no-print">
+  <h1>Printable <span>Maze Generator</span></h1>
+  <p class="tagline">Mazes in six styles, each fitted to a
+    sheet of A4 &mdash; always solvable.</p>
+</header>
+
+<div class="layout">
+
+  <aside class="panel no-print">
+
+    <h2 class="section">Drawing</h2>
+
+    <div class="field">
+      <label for="style">Style</label>
+      <select id="style">
+        <option value="escher">Escher blocks &mdash; contradictory light</option>
+        <option value="iso">Isometric terrain &mdash; pen and ink</option>
+        <option value="hex">Hexagonal &mdash; six-way honeycomb</option>
+        <option value="hexround">Rounded honeycomb &mdash; thick ink, six ways</option>
+        <option value="engrave">Engraved &mdash; hatched walls</option>
+        <option value="theta">Theta &mdash; rings, from the centre out</option>
+      </select>
+    </div>
+
+    <div class="field" id="lightField">
+      <label for="light">Light direction <output id="lightOut">45&deg;</output></label>
+      <input type="range" id="light" min="0" max="345" step="15" value="45">
+      <p class="hint">Rotates the master light; each patch keeps its own
+        disagreement with it, so the depth still flips. Relief is strongest
+        near 45&deg; and 225&deg;, and flattens out near 135&deg; and 315&deg;.</p>
+    </div>
+
+    <h2 class="section">Generation</h2>
+
+    <div class="field">
+      <label for="size">Difficulty</label>
+      <select id="size">
+        <option value="easy">Easy</option>
+        <option value="medium">Medium</option>
+        <option value="hard">Hard</option>
+        <option value="insane">Insane</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="carver">Carver <output id="carverOut"></output></label>
+      <select id="carver">
+        <option value="auto">Auto &mdash; whatever suits the style</option>
+        <option value="dfs">Depth-first &mdash; long winding corridors</option>
+        <option value="kruskal">Kruskal &mdash; short, junction-heavy</option>
+        <option value="wilson">Wilson&rsquo;s &mdash; unbiased</option>
+        <option value="grow">Growing tree &mdash; sliding texture</option>
+      </select>
+    </div>
+
+    <form class="field" id="seedForm">
+      <label for="seed">Seed</label>
+      <div class="row">
+        <input type="text" id="seed" spellcheck="false" autocomplete="off"
+               aria-describedby="seedHint">
+        <button type="submit">Apply</button>
+      </div>
+      <p class="hint" id="seedHint">Any text works. The same seed always
+        redraws the same maze.</p>
+    </form>
+
+    <h2 class="section">Options</h2>
+    
+    <div class="field" id="biasField">
+      <label for="bias">Growth bias <output id="biasOut">70%</output></label>
+      <input type="range" id="bias" min="0" max="100" step="5" value="70">
+      <p class="hint">How often the growing tree extends from the cell it
+        reached most recently rather than from a random one on its frontier.
+        100% is depth-first exactly; 0% is a blob swelling outward from the
+        start. Most of the change happens in the top half of the slider &mdash;
+        below about 50% the texture stops moving much.</p>
+    </div>
+
+    <div class="field">
+      <label class="check">
+        <input type="checkbox" id="solution">
+        <span>Show solution</span>
+      </label>
+      <p class="hint">Prints too, so you can run off an answer key.</p>
+    </div>
+
+    <div class="field actions">
+      <button type="button" id="print">Print</button>
+      <button type="button" id="copy">Copy link</button>
+    </div>
+
+    <p class="stats" id="stats"></p>
+
+  </aside>
+
+  <button type="button" id="regenerate" class="primary">Regenerate</button>
+    
+  <main class="sheet">
+    <p class="error" id="error" role="alert" hidden></p>
+    <div id="stage"></div>
+  </main>
+
+</div>
+
+<script src="src/paper.js"></script>
+<script src="src/rng.js"></script>
+<script src="src/presets.js"></script>
+<script src="src/graph.js"></script>
+<script src="src/maze.js"></script>
+<script src="src/escher.js"></script>
+<script src="src/render.js"></script>
+<script src="src/terrain.js"></script>
+<script src="src/surface.js"></script>
+<script src="src/render-iso.js"></script>
+<script src="src/hex.js"></script>
+<script src="src/lattice.js"></script>
+<script src="src/render-hex.js"></script>
+<script src="src/render-round.js"></script>
+<script src="src/render-engraved.js"></script>
+<script src="src/theta.js"></script>
+<script src="src/render-theta.js"></script>
+<script src="src/app.js"></script>
+</body>
+</html>

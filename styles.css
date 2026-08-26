@@ -1,0 +1,282 @@
+/* Screen chrome is dark so the maze reads as a sheet of paper sitting on a
+ * desk. Everything inside the SVG is greyscale and print-tuned; nothing in
+ * this file may tint it. */
+
+:root {
+  --bg: #16181d;
+  --panel: #1f232b;
+  --panel-edge: #2e343f;
+  --text: #e8eaee;
+  --muted: #949cab;
+  --accent: #d8b25c;
+  --accent-ink: #1a1c21;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        Helvetica, Arial, sans-serif;
+}
+
+.topbar {
+  padding: 26px 32px 18px;
+  border-bottom: 1px solid var(--panel-edge);
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.topbar h1 span { color: var(--muted); font-weight: 400; }
+
+.tagline {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 13.5px;
+}
+
+.layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 28px;
+  padding: 24px 32px 48px;
+}
+
+/* ------------------------------------------------------------------ panel */
+
+.panel {
+  flex: 0 0 288px;
+  position: sticky;
+  top: 24px;
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  border-radius: 10px;
+  padding: 20px;
+}
+
+.field { margin-top: 20px; }
+
+/* The panel carries three grids, five drawings, four carvers and two modifiers.
+ * Flat, that is a long scroll of equal-weight controls; the headings split it
+ * into what the maze IS and how it is DRAWN. */
+.panel .section {
+  margin: 26px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--panel-edge);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.panel .section + .field { margin-top: 14px; }
+
+.panel .section:first-child {
+    margin-top: 0;
+    border-top: none;
+    padding-top: 0;
+}
+
+
+label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 7px;
+}
+
+label output {
+  float: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  letter-spacing: 0;
+}
+
+.row { display: flex; gap: 8px; }
+
+input[type="text"], select {
+  width: 100%;
+  min-width: 0;
+  padding: 9px 10px;
+  background: #12151a;
+  color: var(--text);
+  border: 1px solid var(--panel-edge);
+  border-radius: 6px;
+  font: inherit;
+}
+
+input[type="text"] {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+input[type="text"]:focus, select:focus, button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+button {
+  padding: 9px 14px;
+  background: #2b313b;
+  color: var(--text);
+  border: 1px solid var(--panel-edge);
+  border-radius: 6px;
+  font: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+button:hover:not(:disabled) { background: #353c48; }
+button:disabled { opacity: 0.6; cursor: default; }
+
+button.primary {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+button.primary:hover { background: #e5c073; }
+
+.actions { display: flex; gap: 8px; }
+.actions button { flex: 1; }
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--text);
+  margin: 0;
+  cursor: pointer;
+}
+
+.check input { accent-color: var(--accent); width: 16px; height: 16px; }
+
+.hint {
+  margin: 7px 0 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.stats {
+  margin: 22px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--panel-edge);
+  font-size: 12.5px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------------ sheet */
+
+.sheet {
+  flex: 1 1 auto;
+  min-width: 0;
+  background: #fff;
+  border-radius: 4px;
+  padding: 22px;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.45);
+}
+
+.maze-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  /* Keep the whole drawing -- including the seed caption inside the SVG --
+   * within the viewport instead of forcing a page scroll. The subtrahend is
+   * the header, the layout padding and the sheet padding combined. */
+  max-height: calc(100vh - 200px);
+  margin: 0 auto;
+}
+
+.error {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  background: #fdecec;
+  border: 1px solid #e0a0a0;
+  border-radius: 6px;
+  color: #7a1c1c;
+  font-size: 13.5px;
+}
+
+@media (max-width: 900px) {
+  .layout { flex-direction: column; padding: 16px; }
+  .panel { position: static; flex: 1 1 auto; width: 100%; }
+  .maze-svg { max-height: none; }
+}
+
+/* ------------------------------------------------------------------ print */
+
+@page {
+  size: A4 portrait;
+  margin: 10mm;
+}
+
+@media print {
+  /* Without this the greys are treated as decorative background and dropped,
+   * which would print a maze with no walls. */
+  html, body, .sheet, .maze-svg {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  html, body {
+    background: #fff;
+    color: #000;
+    margin: 0;
+    padding: 0;
+  }
+
+  .no-print { display: none !important; }
+
+  .layout { display: block; padding: 0; gap: 0; }
+
+  .sheet {
+    padding: 0;
+    margin: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: #fff;
+  }
+
+  /* Width is the binding constraint, deliberately and for every style: each
+   * preset's viewBox is proportioned so that 100% of the 190mm text column
+   * comes out just under 272mm tall. src/paper.js states the target and
+   * test/verify.js reads the ratio back out of the rendered SVG, so this
+   * max-height is a backstop against a bad preset rather than the thing doing
+   * the fitting -- if it ever engages, the maze prints narrower than the page
+   * and something upstream is wrong. */
+  .maze-svg {
+    width: 100%;
+    height: auto;
+    max-height: 272mm;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+}
